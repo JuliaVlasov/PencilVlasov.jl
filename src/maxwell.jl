@@ -14,17 +14,17 @@ ez = ez + dt ( ifftx(-jkx fftx(hy)) - iffty(-jky ffty(hx))
 	      - iffty( jky^3 ffty(hx))))
 =#
 
-struct Maxwell
+struct MaxwellPSTD
 
     kx :: Vector{Float64}
     ky :: Vector{Float64}
 
-    function PSTD( meshx, meshy)
+    function PSTD( mesh)
 
-        nx = meshx.length
+        nx = mesh.nx
         kx = vcat(0:nx÷2,-nx÷2:-1)
 
-        ny = meshy.length
+        ny = mesh.ny
         ky = vcat(0:ny÷2,-ny÷2:-1)
 
         new( kx, ky )
@@ -32,27 +32,26 @@ struct Maxwell
     end
 
 end
-#=
 
-function ampere!( f :: MaxwellFieldsTE, s :: PSTD, dt :: Float64)
+function faraday!( ex, ey, bz, s :: MaxwellPSTD, dt :: Float64)
 
-
-    f.ex .+= dt * ( ifft(- 1im * s.ky * ffty(hz), 2)
-            + dt^2/24 ( ifftx(-kx^2 fftx ( iffty ( -jky ffty(hz)))))
-            + iffty(1im * ky.^3 * fft(hz,2))))
+    @. ex += dt * ( ifft(-1im * s.ky * fft(hz,1), 2)
+          + dt^2/24 * (ifft(-kx^2 * fft(ifft(-1im * s.ky * fft(hz, 2), 2), 1), 1))
+          + ifft(1im * ky^3 * fft(hz,2), 2))
     
-    ey = ey - dt ( ifftx(-jkx fftx(hz)) 
-    	+ dt^2/24 *(iffty(-ky^2 ffty(ifftx(-jkx fftx(hz)))) 
-    	+ ifftx(jkx^3 fftx(hz))))
+    @. ey -= dt * ( ifft(-1im * s.kx * fft(hz,1), 1) 
+    	  + dt^2/24 * (ifft(-ky^2 * fft(ifft(-1im * s.kx * fft(hz, 1), 1), 2), 2) 
+    	  + ifft(1im * kx^3 * fft(hz, 1), 1) ) )
+end
     
-    hz = hz - dt (  ifftx(-jkx fftx(ey)) 
-    	      - iffty(-jky ffty(ex)) 
-    	      - dt^2/24 ( 
-    	      - iffty(-ky^2 ffty(ifftx(-jkx fftx(ey))))
-    	      + ifftx(-kx^2 fftx(iffty(-jky ffty(ex))))
-    	      + ifftx(jkx^3 fftx(ey)) 
-                  - iffty(jky^3 ffty(ex))))
+function ampere_maxwell!( ex, ey, bz, s :: MaxwellPSTD, dt :: Float64)
+
+    @. hz -= dt * ( ifftx(-1im * s.kx * fft(ey, 1), 1) 
+    	      - ifft(-1im * s.ky * fft(ex, 2), 2) 
+    	      - dt^2/24  * ( 
+    	      - ifft(-s.ky^2 * fft(ifft(- 1im * s.kx * fft(ey, 1), 1), 2), 2)
+    	      + ifft(-s.kx^2 * fft(ifft(- 1im * s.ky * fft(ex, 2), 2), 1), 1)
+    	      + ifft(1im * s.kx^3 * fft(ey, 1), 1) - ifft( 1im * s.ky^3 * fft(ex, 2), 2)))
 
 end
-=#
 

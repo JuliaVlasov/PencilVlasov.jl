@@ -1,4 +1,7 @@
 using FFTW
+using Test
+
+include("test_maxwell.jl")
 
 struct Vlasov4d
 
@@ -43,30 +46,27 @@ struct Vlasov4d
 end
 
 # Euler explicite
-#         this%tmp_x = this%tmp_x*(1._f64-cmplx(0.0_f64,this%kx,kind=f64)*vx)
+#    this%tmp_x = this%tmp_x*(1._f64-cmplx(0.0_f64,this%kx,kind=f64)*vx)
 # Euler implicite
-#         this%tmp_x = this%tmp_x/(1._f64+cmplx(0.0_f64,this%kx,kind=f64)*vx)
+#    this%tmp_x = this%tmp_x/(1._f64+cmplx(0.0_f64,this%kx,kind=f64)*vx)
 # crank-nicolson
-#         this%tmp_x = this%tmp_x/(1._f64+cmplx(0.0_f64,this%kx,kind=f64)*vx*0.5_f64)
-#         this%tmp_x = this%tmp_x*(1._f64-cmplx(0.0_f64,this%kx,kind=f64)*vx*0.5_f64)
+#   this%tmp_x = this%tmp_x/(1._f64+cmplx(0.0_f64,this%kx,kind=f64)*vx*0.5_f64)
+#   this%tmp_x = this%tmp_x*(1._f64-cmplx(0.0_f64,this%kx,kind=f64)*vx*0.5_f64)
 # Euler cn modified
-#         this%tmp_x=this%tmp_x*(1._f64-0.5*vx*cmplx(0.0_f64,this%kx,kind=f64))
+#   this%tmp_x=this%tmp_x*(1._f64-0.5*vx*cmplx(0.0_f64,this%kx,kind=f64))
 function advection_x1(this, dt)
 
   nc_x1    = this.nc_η1
   x3_min   = this.η3_min
   delta_x3 = this.delta_η3
 
-  for l=1:nc_l
-  for k=1:nc_k
+  for l=1:nc_l, k=1:nc_k
      vx = (x3_min +(k-1)*delta_x3)*dt
-     for j=1,nc_j
-        fft_exec_r2c_1d(this%fwx, this%f(1:nc_x1,j,k,l),this%tmp_x)
-        this%tmp_x = this%tmp_x*exp(-cmplx(0.0_f64,this%kx,kind=f64)*vx)
-        call sll_s_fft_exec_c2r_1d(this%bwx, this%tmp_x, this%d_dx)
-        this%f(1:nc_x1,j,k,l)= this%d_dx / nc_x1
+     for j=1:nc_j
+        tmp_x = fft(this.f(:,j,k,l))
+        tmp_x = tmp_x * exp(- 1im * this.kx * vx)
+        this.f[:,j,k,l] .= ifft(this.tmp_x)
      end
-  end
   end
 
 end 
@@ -82,15 +82,13 @@ end
 # tmp_y = this%tmp_y*(1._f64-cmplx(0.0_f64,this%ky,kind=f64)*vy-0.5_f64*(this%ky*vy)**2)
 function advection_x2(this,dt)
 
-  for l=1,n_l
-    vy = (x4_min +(gl-1)*delta_x4)*dt
-    for k=1,n_k
-    for i=1,n_i
+  for l=1:n_l
+    vy = (x4_min +(l-1)*delta_x4)*dt
+    for k=1:n_k, i=1:n_i
        mul!(f̂, py, f)
        f̂ .= f̂ .* eky .* vy
        ldiv!(f, py, f̂)
        f[i,:,k,l] = d_dy 
-    end
     end
   end
 
@@ -98,11 +96,8 @@ end
 
 function advection_x3x4(this,dt)
 
-  for i=1,n_i
-  for j=1,n_j
-
-     for k=1,n_k
-     for l=1,n_l
+  for i=1:n_i, j=1:n_j
+     for k=1:n_k, l=1:n_l
 
         px = x3_min+(k-1)*delta_x3
         py = x4_min+(l-1)*delta_x4
@@ -112,12 +107,9 @@ function advection_x3x4(this,dt)
         depvy  = 0.5dt * ey[i,j]
         alpha_x[k,l] = - (px - (depvx+(px+depvx)*cthη-(py+depvy)*sthη))
         alpha_y[k,l] = - (py - (depvy+(px+depvx)*sthη+(py+depvy)*cthη))
-
-     end
      end
 
      interpolate_disp(n_k,n_l, ft[i,j,:,:],alpha_x,alpha_y, ft[i,j,:,:])
-  end
   end
 
 end
@@ -126,7 +118,7 @@ end
 
     maxwell = PSTD( mesh )
     poisson = Poisson( mesh )
-    for l=1,n_l, k=1,n_k, j=1,n_j, i=1,n_i
+    for l=1:n_l, k=1:n_k, j=1:n_j, i=1:n_i
         x  = η1_min+(i-1)*delta_η1
         y  = η2_min+(j-1)*delta_η2
         vx = η3_min+(k-1)*delta_η3
@@ -148,16 +140,16 @@ end
     
          transposexv!(vlasov4d)
     
-         call compute_current(vlasov4d)
+         compute_current(vlasov4d)
     
          solve_ampere!(maxwell, dt)
     
-         call advection_x3x4(vlasov4d, dt)
+         advection_x3x4(vlasov4d, dt)
     
-         call transposevx!(vlasov4d)
+         transposevx!(vlasov4d)
     
-         call advection_x1(vlasov4d,dt)
-         call advection_x2(vlasov4d,dt)
+         advection_x1(vlasov4d,dt)
+         advection_x2(vlasov4d,dt)
     
     end
 
