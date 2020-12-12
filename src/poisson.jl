@@ -1,6 +1,8 @@
+export poisson!
+
 """
 
-   poisson!(ρ, mesh, ex, ey)
+   poisson!(ex, ey, mesh, ρ)
 
 Solve the equation Δ Φ = - ρ
 
@@ -10,15 +12,14 @@ Solve the equation Δ Φ = - ρ
 WARNING: the ρ array is destroyed
 
 """
-function poisson!( ρ::Array{ComplexF64,2}, 
-		   mesh::Mesh, 
-		   ex::Array{ComplexF64,2}, 
-		   ey::Array{ComplexF64,2} )
+function poisson!( ex::Array{ComplexF64,2}, 
+		   ey::Array{ComplexF64,2},
+		   mesh::Mesh, ρ::Array{ComplexF64,2})
 
-    nx1 = length(meshx.x1)
-    nx2 = length(meshx.x2)
-    kx0 =  2π / (mesh.x1[end] - mesh.x1[1])
-    ky0 =  2π / (mesh.x2[end] - mesh.x2[1])
+    nx1 = length(mesh.x1)
+    nx2 = length(mesh.x2)
+    kx0 = 2π / 4π
+    ky0 = 2π / 4π
 
     fft!(ρ,[1,2])
     

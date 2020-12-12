@@ -1,8 +1,11 @@
+using PencilVlasov
 using FFTW
 using Test
 
+include("test_poisson.jl")
 include("test_maxwell.jl")
 
+#=
 struct Vlasov4d
 
     f
@@ -116,7 +119,8 @@ end
 
 @testset "Vlasov-Maxwell 2d2v" begin
 
-    maxwell = PSTD( mesh )
+    mesh = Mesh( 64, 64, 128, 128)
+    maxwell = Maxwell( mesh )
     poisson = Poisson( mesh )
     for l=1:n_l, k=1:n_k, j=1:n_j, i=1:n_i
         x  = η1_min+(i-1)*delta_η1
@@ -154,3 +158,4 @@ end
     end
 
 end
+=#
