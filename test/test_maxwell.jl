@@ -38,7 +38,7 @@ mesh = Mesh( nx, ny, nx, ny)
 dx = mesh.dx1
 dy = mesh.dx2
 
-dt = (dx+dy) / (π * sqrt(2))
+dt = 1e-4 #(dx+dy) / (π * sqrt(2))
 
 println(" dt = $dt ")
 
@@ -53,32 +53,23 @@ sol_bz = zeros(nx,ny)
 solver = Maxwell( mesh )
 
 time  = 0.
-
-time = - 0.5dt
-solution!(bz, mesh, time) # Initialize B^{n+1/2}
-solution!(sol_bz, mesh, time)
-err = maximum(abs.(real(bz) .- sol_bz))
-println(" error bz = $err ")
-
-ampere_maxwell!(ex, ey, solver, bz, dt) # E^{n} -> E^{n+1)
-
+solution!( ex, ey, mesh, time)
 time += 0.5dt
-solution!(sol_ex, sol_ey, mesh, time)
+solution!(bz, mesh, time)
 
-err = maximum(abs.(real(ex) .- sol_ex))
-println(" error ex = $err ")
+for _ in 1:10
 
-err = maximum(abs.(real(ey) .- sol_ey))
-println(" error ey = $err ")
+    ampere_maxwell!(ex, ey, solver, bz, dt)
+    time += 0.5dt
+    solution!(sol_ex, sol_ey, mesh, time)
+    faraday!(bz, solver, ex, ey, dt)
+    time += 0.5dt
+    solution!(sol_bz, mesh, time)
 
-faraday!(bz, solver, ex, ey, dt)   # B^{n-1/2} -> B^{n+1/2}
+end
 
-time += 0.5dt
-solution!(sol_bz, mesh, time)
-
-err = maximum(abs.(real(bz) .- sol_bz))
-println(" error bz = $err ")
-
-@test true
+@test maximum(abs.(real(ex) .- sol_ex)) < 1e-3
+@test maximum(abs.(real(ey) .- sol_ey)) < 1e-3
+@test maximum(abs.(real(bz) .- sol_bz)) < 1e-4
 
 end
