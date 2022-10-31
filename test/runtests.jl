@@ -3,14 +3,12 @@ using FFTW
 using Test
 
 include("test_poisson.jl")
-include("test_maxwell.jl")
 
 @testset "Vlasov-Maxwell 2d2v" begin
 
      nx, ny = 32, 32
      nvx, nvy = 64, 64
      mesh = Mesh( nx, ny, nvx, nvy)
-     maxwell = Maxwell( mesh )
      fn = zeros(ComplexF64, (nx, ny, nvx, nvy))
      ft = zeros(ComplexF64, (nvx, nvy, nx, ny))
 #    for l=1:n_l, k=1:n_k, j=1:n_j, i=1:n_i

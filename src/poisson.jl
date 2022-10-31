@@ -21,14 +21,14 @@ function poisson!(
 
     nx1 = length(mesh.x1)
     nx2 = length(mesh.x2)
-    kx0 = 2π / 4π
-    ky0 = 2π / 4π
+    kx0 = 2π / (mesh.x1max - mesh.x1min)
+    ky0 = 2π / (mesh.x2max - mesh.x2min)
 
     fft!(ρ, [1, 2])
 
-    kx = kx0 * vcat(0:nx1÷2-1, -nx1÷2:-1)
+    kx = kx0 * collect(fftfreq(nx1, nx1))
     kx[1] = 1
-    ky = ky0 * vcat(0:nx2÷2-1, -nx2÷2:-1)
+    ky = ky0 * collect(fftfreq(nx2, nx2)) 
     kx[1] = 1
 
     for i = 1:nx1
@@ -42,5 +42,8 @@ function poisson!(
 
     ifft!(ex, [1, 2])
     ifft!(ey, [1, 2])
+
+    ex .= real(ex)
+    ey .= real(ey)
 
 end
