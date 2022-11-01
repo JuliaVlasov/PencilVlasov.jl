@@ -1,12 +1,19 @@
+export Vlasov
+
 struct Vlasov
 
-    mesh :: Mesh
-    fn
-    ft
-    kx
-    ky
+    nx :: Int
+    ny :: Int
+    nvx :: Int
+    nvy :: Int
+    fn :: Array{Float64, 4}
+    ft :: Array{Float64, 4}
+    kx :: Vector{Float64}
+    ky :: Vector{Float64}
+    dvx :: Float64
+    dvy :: Float64
 
-    function Vlasov4d( mesh )
+    function Vlasov( mesh )
 
         nx = mesh.nx1
         ny = mesh.nx2
@@ -24,20 +31,25 @@ struct Vlasov
         vymin = mesh.x4min
         vymax = mesh.x4max
 
-        kx = 2π/(xmax-xmin)*[0:nx÷2-1;nx÷2-nx:-1]
-        ky = 2π/(ymax-ymin)*[0:ny÷2-1;ny÷2-ny:-1]
-        kvx = 2π/(vxmax-vxmin)*[0:nvx÷2-1;nvx÷2-nvx:-1]
-        kvy = 2π/(vymax-vymin)*[0:nvy÷2-1;nvy÷2-nvy:-1]
+        kx = 2π / (xmax-xmin) * fftfreq(nx, nx)
+        ky = 2π / (ymax-ymin) * fftfreq(ny, ny)
+        kvx = 2π / (vxmax-vxmin) * fftfreq(nvx, nvx)
+        kvy = 2π / (vymax-vymin) * fftfreq(nvy, nvy)
 
+        dvx = (vxmax - vxmin) / nvx
+        dvy = (vymax - vymin) / nvy
 
-        new( mesh, fn, ft, kx, ky )
+        fn = zeros(nx, ny, nvx, nvy)
+        ft = zeros(nvx, nvy, nx, ny)
+
+        new( nx, ny, nvx, nvy, fn, ft, kx, ky, dvx, dvy )
 
     end
    
 end
 
 
-function advection_x1(fn, vlasov, dt)
+function advection_x1(vlasov, dt)
 
   nx  = vlasov.mesh.nx1
   ny  = vlasov.mesh.nx2
@@ -57,13 +69,13 @@ function advection_x1(fn, vlasov, dt)
   for l=1:nvy, k=1:nvx
      vx = (vxmin +(k-1)*dvx)*dt
      for j=1:ny
-        vlasov.f[:,j,k,l] .= ifft(exp(-1im .* vlasov.kx .* vx) .* fft(f[:,j,k,l]))
+        vlasov.fn[:,j,k,l] .= ifft(exp(-1im .* vlasov.kx .* vx) .* fft(f[:,j,k,l]))
      end
   end
 
 end 
 
-function advection_x2( fn, vlasov,dt)
+function advection_x2( vlasov, dt)
 
   nx  = vlasov.mesh.nx1
   ny  = vlasov.mesh.nx2
@@ -89,7 +101,7 @@ function advection_x2( fn, vlasov,dt)
 
 end
 
-function advection_x3(ft, vlasov, ex, dt)
+function advection_x3(vlasov, ex, dt)
 
   nx  = vlasov.mesh.nx1
   ny  = vlasov.mesh.nx2
@@ -114,7 +126,7 @@ function advection_x3(ft, vlasov, ex, dt)
 
 end
 
-function advection_x4(ft, vlasov, ey, dt)
+function advection_x4(vlasov, ey, dt)
 
   nx  = vlasov.mesh.nx1
   ny  = vlasov.mesh.nx2

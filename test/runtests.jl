@@ -6,22 +6,37 @@ include("test_poisson.jl")
 
 @testset "Vlasov-Maxwell 2d2v" begin
 
+     ϵ = 0.01
+     kx = 0.5
+     ky = 0.5
      nx, ny = 32, 32
      nvx, nvy = 64, 64
      mesh = Mesh( nx, ny, nvx, nvy)
      fn = zeros(ComplexF64, (nx, ny, nvx, nvy))
      ft = zeros(ComplexF64, (nvx, nvy, nx, ny))
-#    for l=1:n_l, k=1:n_k, j=1:n_j, i=1:n_i
-#        x  = η1_min+(i-1)*delta_η1
-#        y  = η2_min+(j-1)*delta_η2
-#        vx = η3_min+(k-1)*delta_η3
-#        vy = η4_min+(l-1)*delta_η4
-#        v2 = vx*vx+vy*vy
-#        f[i,j,k,l] = ( 1 + ϵ * cos(kx * x) * cos( ky * y )) * exp(-v2)
-#    end
-#
-#
-#    compute_charge(vlasov4d)
+
+     for l=1:mesh.nx4, k=1:mesh.nx3, j=1:mesh.nx2, i=1:mesh.nx1
+         x  = mesh.x1min+(i-1)*mesh.dx1
+         y  = mesh.x2min+(j-1)*mesh.dx2
+         vx = mesh.x3min+(k-1)*mesh.dx3
+         vy = mesh.x4min+(l-1)*mesh.dx4
+         v2 = vx*vx+vy*vy
+         fn[i,j,k,l] = ( 1 + ϵ * cos(kx * x) * cos( ky * y )) * exp(-v2)
+     end
+
+     p = (3, 4, 1, 2) # permutation
+
+     @test ft != permutedims(fn, p)
+
+     permutedims!(ft, fn, p)
+
+     @test ft == permutedims(fn, p)
+     @test fn == permutedims(ft, p)
+
+     vlasov = Vlasov(mesh)
+
+     ρ = compute_charge(vlasov)
+
 #    solve(poisson, ex, ey, rho)
 #    bz = zeros(nx,ny)
 #    

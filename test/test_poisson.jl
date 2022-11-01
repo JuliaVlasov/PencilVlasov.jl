@@ -1,4 +1,3 @@
-using PencilVlasov
 
 @testset "Poisson 2D on rectangular grid" begin
 
