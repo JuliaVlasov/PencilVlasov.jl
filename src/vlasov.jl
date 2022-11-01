@@ -48,6 +48,23 @@ struct Vlasov
    
 end
 
+export transposevx!
+
+function transposevx!(vlasov :: Vlasov)
+
+     p = (3, 4, 1, 2) # permutation
+     permutedims!(vlasov.fn, vlasov.ft, p)
+
+end
+
+export transposexv!
+
+function transposexv!(vlasov :: Vlasov)
+
+     p = (3, 4, 1, 2) # permutation
+     permutedims!(vlasov.ft, vlasov.fn, p)
+
+end
 
 function advection_x1(vlasov, dt)
 

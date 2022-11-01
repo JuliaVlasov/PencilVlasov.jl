@@ -2,7 +2,24 @@ using PencilVlasov
 using FFTW
 using Test
 
-include("test_poisson.jl")
+@testset "Poisson 2D on rectangular grid" begin
+
+    mesh = Mesh( 64, 128, 128, 128)
+    x = mesh.x1
+    y = mesh.x2
+    
+    ex   = zeros(ComplexF64, (mesh.nx1, mesh.nx2))
+    ey   = zeros(ComplexF64, (mesh.nx1, mesh.nx2))
+    ρ    = zeros(ComplexF64, (mesh.nx1, mesh.nx2))
+    
+    ρ   .= - 2 * sin.(x) .* cos.(y')
+
+    poisson!( ex, ey, mesh, ρ)
+
+    @test maximum(abs.( ex .- (cos.(x) .* cos.(y')))) < 1e-14
+    @test maximum(abs.( ey .+ (sin.(x) .* sin.(y')))) < 1e-14
+
+end
 
 @testset "Vlasov-Maxwell 2d2v" begin
 
@@ -12,8 +29,8 @@ include("test_poisson.jl")
      nx, ny = 32, 32
      nvx, nvy = 64, 64
      mesh = Mesh( nx, ny, nvx, nvy)
-     fn = zeros(ComplexF64, (nx, ny, nvx, nvy))
-     ft = zeros(ComplexF64, (nvx, nvy, nx, ny))
+
+     vlasov = Vlasov(mesh)
 
      for l=1:mesh.nx4, k=1:mesh.nx3, j=1:mesh.nx2, i=1:mesh.nx1
          x  = mesh.x1min+(i-1)*mesh.dx1
@@ -21,24 +38,24 @@ include("test_poisson.jl")
          vx = mesh.x3min+(k-1)*mesh.dx3
          vy = mesh.x4min+(l-1)*mesh.dx4
          v2 = vx*vx+vy*vy
-         fn[i,j,k,l] = ( 1 + ϵ * cos(kx * x) * cos( ky * y )) * exp(-v2)
+         vlasov.fn[i,j,k,l] = ( 1 + ϵ * cos(kx * x) * cos( ky * y )) * exp(-v2)
      end
 
-     p = (3, 4, 1, 2) # permutation
 
-     @test ft != permutedims(fn, p)
+     p = (3, 4, 1, 2)
+     @test vlasov.ft != permutedims(vlasov.fn, p)
 
-     permutedims!(ft, fn, p)
+     transposexv!(vlasov)
 
-     @test ft == permutedims(fn, p)
-     @test fn == permutedims(ft, p)
+     @test vlasov.ft == permutedims(vlasov.fn, p)
+     @test vlasov.fn == permutedims(vlasov.ft, p)
 
-     vlasov = Vlasov(mesh)
 
-     ρ = compute_charge(vlasov)
+     ρ = complex.(compute_charge(vlasov))
+     ex = zeros(ComplexF64, (mesh.nx1, mesh.nx2))
+     ey = zeros(ComplexF64, (mesh.nx1, mesh.nx2))
 
-#    solve(poisson, ex, ey, rho)
-#    bz = zeros(nx,ny)
+     poisson!(ex, ey, mesh, ρ)
 #    
 #    transposevx!(vlasov4d)
 #    advection_x1!(vlasov4d,0.5dt)
