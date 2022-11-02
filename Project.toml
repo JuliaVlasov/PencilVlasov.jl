@@ -14,5 +14,6 @@ PencilFFTs = "4a48f351-57a6-4416-9ec4-c37015456aae"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+PencilFFTs = "0.14"
 FFTW = "1"
 PencilArrays = "0.17"
