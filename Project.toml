@@ -12,3 +12,6 @@ MPIClusterManagers = "e7922434-ae4b-11e9-05c5-9780451d2c66"
 PencilArrays = "0e08944d-e94e-41b1-9406-dcf66b6a9d2e"
 PencilFFTs = "4a48f351-57a6-4416-9ec4-c37015456aae"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+MPIClusterManagers = "0.2"
